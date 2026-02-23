@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Legal Document Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="chat-page">
+    <div class="chat-bg"></div>
+
+    <!-- Header -->
+    <div class="chat-header">
+        <a href="/" class="home-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12L5 10M3 12L5 14M3 12H21M9 6L11 4M9 18L11 20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Home
+        </a>
+        <div class="chat-title">
+            <div class="doc-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div>
+                <h2>Document Chat</h2>
+                <p>Ask anything about your document</p>
+            </div>
+        </div>
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            AI Ready
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            {% if history %}
+                {% for q, a in history %}
+                <div class="message-group user-message-group fade-in-message">
+                    <div class="message user-message">
+                        <p>{{ q }}</p>
+                    </div>
+                    <div class="message-time">You</div>
+                </div>
+                <div class="message-group bot-message-group fade-in-message">
+                    <div class="bot-avatar">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" fill="url(#botGradient)"/>
+                            <path d="M8 10C8 10 8 9 8.5 9C9 9 9 10 9 10M15 10C15 10 15 9 15.5 9C16 9 16 10 16 10M9 14C9 14 10 15 12 15C14 15 15 14 15 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="botGradient" x1="2" y1="2" x2="22" y2="22">
+                                    <stop offset="0%" stop-color="#F97316"/>
+                                    <stop offset="100%" stop-color="#FACC15"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="message bot-message">
+                        <p>{{ a }}</p>
+                    </div>
+                    <div class="message-time">AI Assistant</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                            <circle cx="40" cy="40" r="35" stroke="url(#emptyGradient)" stroke-width="3" stroke-dasharray="5 5"/>
+                            <path d="M40 25V40L50 50" stroke="url(#emptyGradient)" stroke-width="3" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="emptyGradient" x1="5" y1="5" x2="75" y2="75">
+                                    <stop offset="0%" stop-color="#A855F7"/>
+                                    <stop offset="100%" stop-color="#EC4899"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3>Start a Conversation</h3>
+                    <p>Ask any question about your legal document and get instant answers</p>
+                    <div class="suggestion-chips">
+                        <button class="chip" onclick="setQuestion('What are the main terms?')">What are the main terms?</button>
+                        <button class="chip" onclick="setQuestion('What are my obligations?')">What are my obligations?</button>
+                        <button class="chip" onclick="setQuestion('Are there any risks?')">Are there any risks?</button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-container">
+            <form method="POST" class="chat-input-form" id="chatForm">
+                <div class="input-wrapper">
+                    <input
+                        type="text"
+                        name="question"
+                        id="questionInput"
+                        placeholder="Type your question here..."
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="button" class="voice-btn" onclick="startVoice()" title="Voice input">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 1C8.34315 1 7 2.34315 7 4V10C7 11.6569 8.34315 13 10 13C11.6569 13 13 11.6569 13 10V4C13 2.34315 11.6569 1 10 1Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M4 10C4 13.3137 6.68629 16 10 16M10 16C13.3137 16 16 13.3137 16 10M10 16V19M7 19H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <button type="submit" class="send-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        function setQuestion(text) {
+            document.getElementById('questionInput').value = text;
+            document.getElementById('questionInput').focus();
+        }
+
+        function startVoice() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                alert('Voice recognition is not supported in your browser. Please try Chrome or Edge.');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            const voiceBtn = document.querySelector('.voice-btn');
+
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+
+            voiceBtn.classList.add('recording');
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                document.getElementById('questionInput').value = text;
+                voiceBtn.classList.remove('recording');
+            };
+
+            recognition.onerror = function() {
+                voiceBtn.classList.remove('recording');
+                alert('Voice recognition error. Please try again.');
+            };
+
+            recognition.onend = function() {
+                voiceBtn.classList.remove('recording');
+            };
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', function() {
+            const input = document.getElementById('questionInput');
+            if (input.value.trim()) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'message-group bot-message-group fade-in-message';
+                loadingDiv.innerHTML = `
+                    <div class="bot-avatar">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" fill="url(#botGradient)"/>
+                        </svg>
+                    </div>
+                    <div class="message bot-message loading-message">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                `;
+                chatMessages.appendChild(loadingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>

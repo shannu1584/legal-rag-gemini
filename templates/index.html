@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Document Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header fade-in">
+            <div class="logo">
+                <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
+                    <path d="M25 5L35 15V45H15V15L25 5Z" fill="url(#gradient1)"/>
+                    <path d="M20 25H30M20 30H30M20 35H27" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="gradient1" x1="15" y1="5" x2="35" y2="45">
+                            <stop offset="0%" stop-color="#FF6B6B"/>
+                            <stop offset="100%" stop-color="#FFD93D"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="title">Legal Document Analyzer</h1>
+            <p class="subtitle">Upload, Analyze, Understand - Powered by AI</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section fade-in-delay">
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-box" id="uploadBox">
+                    <div class="upload-icon">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                            <path d="M40 20V50M40 20L30 30M40 20L50 30" stroke="url(#gradient2)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M25 50V55C25 58.866 28.134 62 32 62H48C51.866 62 55 58.866 55 55V50" stroke="url(#gradient2)" stroke-width="4" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="gradient2" x1="25" y1="20" x2="55" y2="62">
+                                    <stop offset="0%" stop-color="#A855F7"/>
+                                    <stop offset="100%" stop-color="#EC4899"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h3>Drop your PDF here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" name="file" id="fileInput" accept=".pdf" required>
+                    <button type="submit" class="upload-btn">
+                        <span>Upload Document</span>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 10H15M15 10L12 7M15 10L12 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Action Cards (shown after upload) -->
+        {% if uploaded %}
+        <div class="action-cards">
+            <a href="/chat" class="action-card card-chat slide-in-left">
+                <div class="card-icon">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <path d="M50 20C50 15.5817 46.4183 12 42 12H18C13.5817 12 10 15.5817 10 20V35C10 39.4183 13.5817 43 18 43H25L30 48L35 43H42C46.4183 43 50 39.4183 50 35V20Z" fill="url(#chatGradient)"/>
+                        <circle cx="22" cy="27" r="2" fill="white"/>
+                        <circle cx="30" cy="27" r="2" fill="white"/>
+                        <circle cx="38" cy="27" r="2" fill="white"/>
+                        <defs>
+                            <linearGradient id="chatGradient" x1="10" y1="12" x2="50" y2="48">
+                                <stop offset="0%" stop-color="#F97316"/>
+                                <stop offset="100%" stop-color="#FACC15"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h3>Chat with Document</h3>
+                <p>Ask questions and get instant answers using AI-powered RAG</p>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <a href="/summary" class="action-card card-summary slide-in-right">
+                <div class="card-icon">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <rect x="15" y="10" width="30" height="40" rx="3" fill="url(#summaryGradient)"/>
+                        <line x1="20" y1="20" x2="40" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="26" x2="35" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="32" x2="38" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="38" x2="32" y2="38" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="summaryGradient" x1="15" y1="10" x2="45" y2="50">
+                                <stop offset="0%" stop-color="#8B5CF6"/>
+                                <stop offset="100%" stop-color="#EC4899"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h3>Generate Summary</h3>
+                <p>Get detailed analysis with obligations, risks, and confidence score</p>
+                <div class="card-arrow">→</div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Features Section (shown before upload) -->
+        {% if not uploaded %}
+        <div class="features fade-in-delay-2">
+            <div class="feature">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #F97316, #FACC15);">⚡</div>
+                <h4>Fast Analysis</h4>
+                <p>Get instant insights from your legal documents</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #EC4899);">🔒</div>
+                <h4>Secure</h4>
+                <p>Your documents are processed safely and securely</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #10B981, #3B82F6);">🤖</div>
+                <h4>AI Powered</h4>
+                <p>Advanced language models for accurate analysis</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const uploadBox = document.getElementById('uploadBox');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadBox.addEventListener('click', () => {
+            if (event.target !== fileInput && event.target.tagName !== 'BUTTON') {
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                uploadBox.querySelector('h3').textContent = fileName;
+                uploadBox.classList.add('has-file');
+            }
+        });
+
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('drag-over');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('drag-over');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                const fileName = e.dataTransfer.files[0].name;
+                uploadBox.querySelector('h3').textContent = fileName;
+                uploadBox.classList.add('has-file');
+            }
+        });
+    </script>
+</body>
+</html>
