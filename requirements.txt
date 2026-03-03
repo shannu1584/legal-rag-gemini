@@ -1,9 +1,11 @@
-flask
-google-genai
-sentence-transformers
-faiss-cpu
+Flask
 python-dotenv
+google-genai
+faiss-cpu
+numpy
 langchain-community
 langchain-text-splitters
 reportlab
+sentence-transformers
+pypdf
 gunicorn

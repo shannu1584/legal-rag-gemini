@@ -154,11 +154,11 @@
                 voiceBtn.classList.remove('recording');
             };
 
-            recognition.onerror = function() {
+            recognition.onerror = function(event) {
                 voiceBtn.classList.remove('recording');
-                alert('Voice recognition error. Please try again.');
+                alert("Voice Error: " + event.error);
             };
-
+            
             recognition.onend = function() {
                 voiceBtn.classList.remove('recording');
             };
