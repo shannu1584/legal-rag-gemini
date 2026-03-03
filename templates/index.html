@@ -62,6 +62,12 @@
                             <path d="M5 10H15M15 10L12 7M15 10L12 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
+                    <!-- ✅ SUCCESS MESSAGE ADDED HERE -->
+            {% if uploaded %}
+                <p class="upload-success">
+                    Document uploaded successfully ✅
+                </p>
+            {% endif %}
                 </div>
             </form>
         </div>
@@ -135,42 +141,49 @@
     </div>
 
     <script>
-        const uploadBox = document.getElementById('uploadBox');
-        const fileInput = document.getElementById('fileInput');
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
 
-        uploadBox.addEventListener('click', () => {
-            if (event.target !== fileInput && event.target.tagName !== 'BUTTON') {
-                fileInput.click();
-            }
-        });
+    // Open file browser ONLY when clicking box (not button)
+    uploadBox.addEventListener('click', (e) => {
+        if (
+            !e.target.closest('.upload-btn') && 
+            e.target !== fileInput
+        ) {
+            fileInput.click();
+        }
+    });
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                const fileName = e.target.files[0].name;
-                uploadBox.querySelector('h3').textContent = fileName;
-                uploadBox.classList.add('has-file');
-            }
-        });
+    // Show selected file name
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const fileName = e.target.files[0].name;
+            uploadBox.querySelector('h3').textContent = fileName;
+            uploadBox.classList.add('has-file');
+        }
+    });
 
-        uploadBox.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadBox.classList.add('drag-over');
-        });
+    // Drag over effect
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.classList.add('drag-over');
+    });
 
-        uploadBox.addEventListener('dragleave', () => {
-            uploadBox.classList.remove('drag-over');
-        });
+    uploadBox.addEventListener('dragleave', () => {
+        uploadBox.classList.remove('drag-over');
+    });
 
-        uploadBox.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadBox.classList.remove('drag-over');
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                const fileName = e.dataTransfer.files[0].name;
-                uploadBox.querySelector('h3').textContent = fileName;
-                uploadBox.classList.add('has-file');
-            }
-        });
-    </script>
+    // Handle drop
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const fileName = e.dataTransfer.files[0].name;
+            uploadBox.querySelector('h3').textContent = fileName;
+            uploadBox.classList.add('has-file');
+        }
+    });
+</script>
 </body>
 </html>

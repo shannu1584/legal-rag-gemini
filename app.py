@@ -150,19 +150,25 @@ def calculate_confidence():
 # =====================================
 # ROUTES
 # =====================================
+
 @app.route("/", methods=["GET", "POST"])
 def home():
-    global uploaded_flag, current_filename
+    global current_filename
+
+    uploaded = False  # local variable (not global flag)
 
     if request.method == "POST":
         file = request.files.get("file")
         if file:
-            file.save(file.filename)
-            build_retriever(file.filename)
-            uploaded_flag = True
-            current_filename = file.filename
+            os.makedirs("uploads", exist_ok=True)
+            filepath = os.path.join("uploads", file.filename)
+            file.save(filepath)
 
-    return render_template("index.html", uploaded=uploaded_flag)
+            build_retriever(filepath)
+            current_filename = file.filename
+            uploaded = True
+
+    return render_template("index.html", uploaded=uploaded)
 
 
 @app.route("/chat", methods=["GET", "POST"])
@@ -297,6 +303,3 @@ def export_pdf():
 
     return send_file(filename, as_attachment=True)
 
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=7860)

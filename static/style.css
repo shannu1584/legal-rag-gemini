@@ -279,7 +279,13 @@ body {
     text-decoration: none;
     color: inherit;
 }
-
+.upload-success {
+    margin-top: 15px;
+    color: #22c55e;
+    font-weight: 600;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
 .action-card::before {
     content: '';
     position: absolute;
