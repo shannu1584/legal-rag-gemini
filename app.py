@@ -1,8 +1,10 @@
 import os
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, session
+import uuid
 from dotenv import load_dotenv
 from google import genai
 import faiss
+from langchain_community import embeddings
 import numpy as np
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -25,16 +27,15 @@ client = genai.Client(
 )
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 app = Flask(__name__)
+app.secret_key = "legal-rag-secret"
 
 # =====================================
 # GLOBALS
 # =====================================
-index = None
-chunks = []
-history = []
-uploaded_flag = False
-current_filename = "Uploaded Document"
-
+user_indexes = {}
+user_chunks = {}
+user_history = {}
+current_filename = {}
 
 # =====================================
 # EMBEDDING FUNCTION
@@ -45,7 +46,7 @@ def get_embedding(text):
 # =====================================
 # BUILD FAISS INDEX
 # =====================================
-def build_retriever(pdf_path):
+def build_retriever(pdf_path, user_id):
     global index, chunks
 
     loader = PyPDFLoader(pdf_path)
@@ -65,6 +66,8 @@ def build_retriever(pdf_path):
     index = faiss.IndexFlatL2(dimension)
     index.add(np.array(embeddings))
 
+    user_indexes[user_id] = index
+    user_chunks[user_id] = chunks
     print("✅ Document indexed with local embeddings (MiniLM)")
 
 
@@ -72,7 +75,9 @@ def build_retriever(pdf_path):
 # RAG ANSWER
 # =====================================
 def rag_answer(question):
-    global index, chunks
+    user_id = session.get("user_id")
+    index = user_indexes.get(user_id)
+    chunks = user_chunks.get(user_id)
 
     if index is None:
         return "Please upload a PDF first."
@@ -100,7 +105,8 @@ Question:
 
 
 def generate_summary():
-    global chunks
+    user_id = session.get("user_id")
+    chunks = user_chunks.get(user_id)
 
     if not chunks:
         return "Upload PDF first."
@@ -138,7 +144,8 @@ Text:
 # CONFIDENCE CALCULATION
 # ===============================
 def calculate_confidence():
-    global chunks
+    user_id = session.get("user_id")
+    chunks = user_chunks.get(user_id)
 
     if not chunks:
         return "0%"
@@ -153,35 +160,47 @@ def calculate_confidence():
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    global current_filename
 
-    uploaded = False  # local variable (not global flag)
+    if "user_id" not in session:
+        session["user_id"] = str(uuid.uuid4())
+
+    user_id = session["user_id"]
+    uploaded = False
 
     if request.method == "POST":
         file = request.files.get("file")
+
         if file:
-            os.makedirs("uploads", exist_ok=True)
-            filepath = os.path.join("uploads", file.filename)
+            user_folder = os.path.join("uploads", user_id)
+            os.makedirs(user_folder, exist_ok=True)
+
+            filepath = os.path.join(user_folder, file.filename)
             file.save(filepath)
 
-            build_retriever(filepath)
-            current_filename = file.filename
+            build_retriever(filepath, user_id)
+
+            current_filename[user_id] = file.filename
             uploaded = True
 
     return render_template("index.html", uploaded=uploaded)
 
-
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
-    global history
+
+    user_id = session.get("user_id")
+
+    if user_id not in user_history:
+        user_history[user_id] = []
+
+    history = user_history[user_id]
 
     if request.method == "POST":
         q = request.form["question"]
         a = rag_answer(q)
+
         history.append((q, a))
 
     return render_template("chat.html", history=history)
-
 
 @app.route("/summary")
 def summary():
@@ -204,7 +223,7 @@ def summary():
         summary=summary_part,
         obligations=obligations_part,
         risks=risks_part,
-        filename=current_filename,
+        filename=current_filename.get(session.get("user_id")),
         confidence = calculate_confidence()
     )
 
@@ -249,7 +268,7 @@ def export_pdf():
     elements.append(Spacer(1, 12))
 
     # Document Name
-    elements.append(Paragraph(f"<b>Document:</b> {current_filename}", normal_style))
+    elements.append(Paragraph(f"<b>Document:</b> {current_filename.get(session.get('user_id'))}", normal_style))
     elements.append(Spacer(1, 6))
 
     # Generated Date
@@ -302,4 +321,3 @@ def export_pdf():
     doc.build(elements)
 
     return send_file(filename, as_attachment=True)
-
