@@ -186,7 +186,8 @@ def home():
             # ⭐ remember that a document is uploaded
             session["uploaded"] = True
 
-    return render_template("index.html", uploaded=session["uploaded"])
+    uploaded = session.get("user_id") in user_indexes
+    return render_template("index.html", uploaded=uploaded)
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
