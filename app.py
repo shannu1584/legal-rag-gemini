@@ -165,7 +165,9 @@ def home():
         session["user_id"] = str(uuid.uuid4())
 
     user_id = session["user_id"]
-    uploaded = False
+
+    if "uploaded" not in session:
+        session["uploaded"] = False
 
     if request.method == "POST":
         file = request.files.get("file")
@@ -180,9 +182,11 @@ def home():
             build_retriever(filepath, user_id)
 
             current_filename[user_id] = file.filename
-            uploaded = True
 
-    return render_template("index.html", uploaded=uploaded)
+            # ⭐ remember that a document is uploaded
+            session["uploaded"] = True
+
+    return render_template("index.html", uploaded=session["uploaded"])
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
@@ -321,3 +325,5 @@ def export_pdf():
     doc.build(elements)
 
     return send_file(filename, as_attachment=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=7860)
