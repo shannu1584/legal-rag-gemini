@@ -151,7 +151,7 @@ def calculate_confidence():
         return "0%"
 
     # Basic logic based on document depth
-    score = min(70 + len(chunks) // 2, 97)
+    score = min(70 + len(chunks) // 2, 95)
 
     return f"{score}%"
 # =====================================
