@@ -93,7 +93,9 @@
                 </div>
             {% endif %}
         </div>
-
+        <div id="loading" style="display:none;">
+        AI is analyzing the document...
+        </div>
         <!-- Input Area -->
         <div class="chat-input-container">
             <form method="POST" class="chat-input-form" id="chatForm">
@@ -163,7 +165,9 @@
                 voiceBtn.classList.remove('recording');
             };
         }
-
+        document.querySelector("form").addEventListener("submit", function(){
+             document.getElementById("loading").style.display = "block";
+        });
         document.getElementById('chatForm').addEventListener('submit', function() {
             const input = document.getElementById('questionInput');
             if (input.value.trim()) {

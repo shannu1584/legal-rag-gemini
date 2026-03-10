@@ -1042,3 +1042,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #8B5CF6, #EC4899);
 }
+#loading{
+    color:#6366f1;
+    font-weight:bold;
+    margin-top:10px;
+}
