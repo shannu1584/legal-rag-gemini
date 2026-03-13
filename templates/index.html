@@ -17,7 +17,27 @@
         <div class="shape shape-2"></div>
         <div class="shape shape-3"></div>
     </div>
+    <div id="loading-screen">
+    <div class="loader-container">
 
+        <div class="progress-circle">
+            <div class="circle">
+                <span class="emoji">⚖️</span>
+            </div>
+        </div>
+
+        <h2 id="loading-text">Uploading your legal document...</h2>
+
+        <p id="loading-stage">Preparing document...</p>
+
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        
+
+    </div>
+</div>
     <div class="container">
         <!-- Header -->
         <div class="header fade-in">
@@ -56,7 +76,7 @@
                     <h3>Drop your PDF here</h3>
                     <p>or click to browse</p>
                     <input type="file" name="file" id="fileInput" accept=".pdf" required>
-                    <button type="submit" class="upload-btn">
+                    <button type="button" class="upload-btn" onclick="uploadFile()">
                         <span>Upload Document</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                             <path d="M5 10H15M15 10L12 7M15 10L12 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -75,7 +95,10 @@
         <!-- Action Cards (shown after upload) -->
         {% if uploaded %}
         <div class="action-cards">
-            <a href="/chat" class="action-card card-chat slide-in-left">
+            <a href="/chat"
+            class="action-card card-chat slide-in-left"
+            onclick="event.preventDefault(); showLoading('🤖 Loading AI Assistant...'); setTimeout(()=>{window.location='/chat';},100);">
+
                 <div class="card-icon">
                     <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
                         <path d="M50 20C50 15.5817 46.4183 12 42 12H18C13.5817 12 10 15.5817 10 20V35C10 39.4183 13.5817 43 18 43H25L30 48L35 43H42C46.4183 43 50 39.4183 50 35V20Z" fill="url(#chatGradient)"/>
@@ -95,7 +118,10 @@
                 <div class="card-arrow">→</div>
             </a>
 
-            <a href="/summary" class="action-card card-summary slide-in-right">
+            <a href="/summary" 
+            class="action-card card-summary slide-in-right"
+            onclick="showLoading('📑 Generating Legal Summary...')">
+
                 <div class="card-icon">
                     <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
                         <rect x="15" y="10" width="30" height="40" rx="3" fill="url(#summaryGradient)"/>
@@ -141,49 +167,126 @@
     </div>
 
     <script>
-    const uploadBox = document.getElementById('uploadBox');
-    const fileInput = document.getElementById('fileInput');
 
-    // Open file browser ONLY when clicking box (not button)
-    uploadBox.addEventListener('click', (e) => {
-        if (
-            !e.target.closest('.upload-btn') && 
-            e.target !== fileInput
-        ) {
-            fileInput.click();
+// ---------- LOADING SCREEN ----------
+
+function showLoading(message){
+    document.getElementById("loading-text").innerText = message;
+    document.getElementById("loading-screen").style.visibility = "visible";
+    startFakeProgress();
+}
+
+// ---------- FAKE PROGRESS BAR ----------
+
+function startFakeProgress(){
+
+    
+    const fill = document.getElementById("progress-fill");
+    const stage = document.getElementById("loading-stage");
+
+    let progress = 0;
+
+    const stages = [
+        "Preparing document...",
+        "Understanding legal content...",
+        "Analyzing legal clauses...",
+        "Extracting key insights...",
+        "Finalizing analysis..."
+    ];
+
+    let stageIndex = 0;
+
+    const interval = setInterval(()=>{
+
+        progress += Math.random() * 20;
+
+        if(progress >= 100){
+            progress = 100;
+            clearInterval(interval);
         }
-    });
 
-    // Show selected file name
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            const fileName = e.target.files[0].name;
-            uploadBox.querySelector('h3').textContent = fileName;
-            uploadBox.classList.add('has-file');
+        fill.style.width = progress + "%";
+        
+
+        if(progress > (stageIndex + 1) * 20 && stageIndex < stages.length-1){
+            stageIndex++;
+            stage.innerText = stages[stageIndex];
         }
-    });
 
-    // Drag over effect
-    uploadBox.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadBox.classList.add('drag-over');
-    });
+    },400);
+}
 
-    uploadBox.addEventListener('dragleave', () => {
-        uploadBox.classList.remove('drag-over');
-    });
+// ---------- UPLOAD BUTTON ----------
 
-    // Handle drop
-    uploadBox.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadBox.classList.remove('drag-over');
-        if (e.dataTransfer.files.length > 0) {
-            fileInput.files = e.dataTransfer.files;
-            const fileName = e.dataTransfer.files[0].name;
-            uploadBox.querySelector('h3').textContent = fileName;
-            uploadBox.classList.add('has-file');
-        }
-    });
+function uploadFile(){
+
+
+const fileInput = document.getElementById("fileInput");
+
+if(fileInput.files.length === 0){
+    alert("Please select a PDF file first");
+    return;
+}
+
+// show loading instantly
+showLoading("📄 Uploading your legal document...");
+
+// allow browser to render loader first
+setTimeout(() => {
+    document.getElementById("uploadForm").submit();
+}, 100);
+
+
+}
+
+
+// ---------- FILE DRAG & DROP ----------
+
+const uploadBox = document.getElementById('uploadBox');
+const fileInput = document.getElementById('fileInput');
+
+// Click box → open file browser
+uploadBox.addEventListener('click', (e) => {
+    if (!e.target.closest('.upload-btn') && e.target !== fileInput) {
+        fileInput.click();
+    }
+});
+
+// Show selected filename
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        const fileName = e.target.files[0].name;
+        uploadBox.querySelector('h3').textContent = fileName;
+        uploadBox.classList.add('has-file');
+    }
+});
+
+// Drag over effect
+uploadBox.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadBox.classList.add('drag-over');
+});
+
+// Drag leave
+uploadBox.addEventListener('dragleave', () => {
+    uploadBox.classList.remove('drag-over');
+});
+
+// File drop
+uploadBox.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadBox.classList.remove('drag-over');
+
+    if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+
+        const fileName = e.dataTransfer.files[0].name;
+        uploadBox.querySelector('h3').textContent = fileName;
+        uploadBox.classList.add('has-file');
+    }
+});
+
 </script>
+
 </body>
 </html>

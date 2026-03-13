@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body class="chat-page">
     <div class="chat-bg"></div>
 
@@ -38,7 +39,27 @@
             AI Ready
         </div>
     </div>
+    <div id="loading-screen">
+    <div class="loader-container">
 
+        <div class="progress-circle">
+            <div class="circle">
+                <span class="emoji">⚖️</span>
+            </div>
+        </div>
+
+        <h2 id="loading-text">Loading...</h2>
+
+        <p id="loading-stage">Preparing AI assistant...</p>
+
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        
+
+    </div>
+</div>
     <!-- Chat Container -->
     <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
@@ -93,9 +114,7 @@
                 </div>
             {% endif %}
         </div>
-        <div id="loading" style="display:none;">
-        AI is analyzing the document...
-        </div>
+        
         <!-- Input Area -->
         <div class="chat-input-container">
             <form method="POST" class="chat-input-form" id="chatForm">
@@ -125,72 +144,168 @@
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chatMessages');
+
+// ---------- PAGE LOADER ----------
+
+// ---------- PAGE LOADER ----------
+
+const isFirstLoad = "{{ 'true' if not history else 'false' }}" === "true";
+
+if(isFirstLoad){
+
+    window.addEventListener("load", () => {
+
+        showLoading("🤖 Loading AI Legal Assistant...");
+        startFakeProgress();
+
+        setTimeout(() => {
+            document.getElementById("loading-screen").style.visibility = "hidden";
+        }, 2000);
+
+    });
+
+}
+function showLoading(message){
+    document.getElementById("loading-text").innerText = message;
+    document.getElementById("loading-screen").style.visibility = "visible";
+}
+
+function startFakeProgress(){
+
+    
+    const fill = document.getElementById("progress-fill");
+    const stage = document.getElementById("loading-stage");
+
+    let progress = 0;
+
+    const stages = [
+        "Connecting to AI model...",
+        "Loading document embeddings...",
+        "Preparing conversation context...",
+        "Initializing AI assistant..."
+    ];
+
+    let stageIndex = 0;
+
+    const interval = setInterval(()=>{
+
+        progress += Math.random()*20;
+
+        if(progress >= 100){
+            progress = 100;
+            clearInterval(interval);
+        }
+
+        fill.style.width = progress + "%";
+        
+
+        if(progress > (stageIndex+1)*25 && stageIndex < stages.length-1){
+            stageIndex++;
+            stage.innerText = stages[stageIndex];
+        }
+
+    },300);
+}
+
+
+
+// ---------- AUTO SCROLL CHAT ----------
+
+const chatMessages = document.getElementById('chatMessages');
+
+if(chatMessages){
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+
+// ---------- CLICK SUGGESTED QUESTION ----------
+
+function setQuestion(text){
+    const input = document.getElementById('questionInput');
+    input.value = text;
+    input.focus();
+}
+
+
+
+// ---------- VOICE INPUT ----------
+
+function startVoice(){
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition){
+        alert('Voice recognition is not supported in your browser. Please try Chrome or Edge.');
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    const voiceBtn = document.querySelector('.voice-btn');
+
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+
+    voiceBtn.classList.add('recording');
+    recognition.start();
+
+    recognition.onresult = function(event){
+
+        const text = event.results[0][0].transcript;
+        document.getElementById('questionInput').value = text;
+
+        voiceBtn.classList.remove('recording');
+    };
+
+    recognition.onerror = function(event){
+        voiceBtn.classList.remove('recording');
+        alert("Voice Error: " + event.error);
+    };
+
+    recognition.onend = function(){
+        voiceBtn.classList.remove('recording');
+    };
+}
+document.getElementById("chatForm").addEventListener("submit", function(){
+
+    const input = document.getElementById("questionInput");
+
+    if(input.value.trim()){
+
+        const chatMessages = document.getElementById("chatMessages");
+
+        const loader = document.createElement("div");
+        loader.className = "message-group bot-message-group fade-in-message";
+
+        loader.innerHTML = `
+        <div class="bot-avatar">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="#F97316"/>
+            </svg>
+        </div>
+
+        <div class="message bot-message loading-bar">
+            <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <p class="loading-text">
+                AI is analyzing the document...
+            </p>
+        </div>
+        `;
+
+        chatMessages.appendChild(loader);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        function setQuestion(text) {
-            document.getElementById('questionInput').value = text;
-            document.getElementById('questionInput').focus();
-        }
+    }
+});
 
-        function startVoice() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-            if (!SpeechRecognition) {
-                alert('Voice recognition is not supported in your browser. Please try Chrome or Edge.');
-                return;
-            }
 
-            const recognition = new SpeechRecognition();
-            const voiceBtn = document.querySelector('.voice-btn');
+</script>
 
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-
-            voiceBtn.classList.add('recording');
-            recognition.start();
-
-            recognition.onresult = function(event) {
-                const text = event.results[0][0].transcript;
-                document.getElementById('questionInput').value = text;
-                voiceBtn.classList.remove('recording');
-            };
-
-            recognition.onerror = function(event) {
-                voiceBtn.classList.remove('recording');
-                alert("Voice Error: " + event.error);
-            };
-            
-            recognition.onend = function() {
-                voiceBtn.classList.remove('recording');
-            };
-        }
-        document.querySelector("form").addEventListener("submit", function(){
-             document.getElementById("loading").style.display = "block";
-        });
-        document.getElementById('chatForm').addEventListener('submit', function() {
-            const input = document.getElementById('questionInput');
-            if (input.value.trim()) {
-                const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'message-group bot-message-group fade-in-message';
-                loadingDiv.innerHTML = `
-                    <div class="bot-avatar">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" fill="url(#botGradient)"/>
-                        </svg>
-                    </div>
-                    <div class="message bot-message loading-message">
-                        <div class="typing-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                `;
-                chatMessages.appendChild(loadingDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        });
-    </script>
 </body>
 </html>

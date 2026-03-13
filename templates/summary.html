@@ -30,7 +30,27 @@
             </p>
         </div>
     </div>
+   <div id="loading-screen">
+    <div class="loader-container">
 
+        <div class="progress-circle">
+            <div class="circle">
+                <span class="emoji">⚖️</span>
+            </div>
+        </div>
+
+        <h2 id="loading-text">Loading...</h2>
+
+        <p id="loading-stage">Preparing AI assistant...</p>
+
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        
+
+    </div>
+</div>
     <!-- Main Content -->
     <div class="summary-container">
         <!-- Confidence Score Card -->
@@ -135,34 +155,119 @@
     </div>
 
     <script>
-        const confidenceValue = parseInt("{{ confidence }}".replace('%', ''));
-        const circle = document.getElementById('confidenceCircle');
-        const numberElement = document.getElementById('confidenceNumber');
-        const circumference = 377;
+
+// ---------- PAGE LOADER ----------
+
+const isSummaryFirstLoad = "{{ 'true' if summary == '' else 'false' }}" === "true";
+
+if(isSummaryFirstLoad){
+
+    window.addEventListener("load", () => {
+
+        showLoading("📑 Generating Legal Summary...");
+        startFakeProgress();
 
         setTimeout(() => {
-            const offset = circumference - (confidenceValue / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
+            document.getElementById("loading-screen").style.visibility = "hidden";
+        }, 2000);
 
-            let current = 0;
-            const increment = confidenceValue / 50;
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= confidenceValue) {
-                    current = confidenceValue;
-                    clearInterval(timer);
-                }
-                numberElement.textContent = Math.round(current) + '%';
-            }, 20);
-        }, 300);
+    });
 
-        document.querySelectorAll('.content-text').forEach(element => {
-            let text = element.textContent;
-            text = text.replace(/[•\-]\s/g, '<span class="bullet">•</span> ');
-            text = text.replace(/\n/g, '<br>');
-            element.innerHTML = text;
-        });
-    </script>
+}
+// ---------- LOADER FUNCTIONS ----------
+
+function showLoading(message){
+    document.getElementById("loading-text").innerText = message;
+    document.getElementById("loading-screen").style.visibility = "visible";
+}
+
+function startFakeProgress(){
+
+    
+    const fill = document.getElementById("progress-fill");
+    const stage = document.getElementById("loading-stage");
+
+    let progress = 0;
+
+    const stages = [
+        "Scanning legal document...",
+        "Analyzing clauses...",
+        "Detecting obligations...",
+        "Identifying risks...",
+        "Generating summary report..."
+    ];
+
+    let stageIndex = 0;
+
+    const interval = setInterval(()=>{
+
+        progress += Math.random()*8;
+
+        if(progress >= 100){
+            progress = 100;
+            clearInterval(interval);
+        }
+
+        fill.style.width = progress + "%";
+        
+
+        if(progress > (stageIndex+1)*20 && stageIndex < stages.length-1){
+            stageIndex++;
+            stage.innerText = stages[stageIndex];
+        }
+
+    },350);
+}
+
+
+
+// ---------- CONFIDENCE CIRCLE ANIMATION ----------
+
+const confidenceValue = parseInt("{{ confidence }}".replace('%', ''));
+const circle = document.getElementById('confidenceCircle');
+const numberElement = document.getElementById('confidenceNumber');
+const circumference = 377;
+
+setTimeout(() => {
+
+    const offset = circumference - (confidenceValue / 100) * circumference;
+    circle.style.strokeDashoffset = offset;
+
+    let current = 0;
+    const increment = confidenceValue / 50;
+
+    const timer = setInterval(() => {
+
+        current += increment;
+
+        if (current >= confidenceValue) {
+            current = confidenceValue;
+            clearInterval(timer);
+        }
+
+        numberElement.textContent = Math.round(current) + '%';
+
+    }, 20);
+
+}, 300);
+
+
+
+// ---------- FORMAT BULLET POINTS ----------
+
+document.querySelectorAll('.content-text').forEach(element => {
+
+    let text = element.textContent;
+
+    text = text.replace(/[•\-]\s/g, '<span class="bullet">•</span> ');
+    text = text.replace(/\n/g, '<br>');
+
+    element.innerHTML = text;
+
+});
+
+</script>
+
 </body>
 </html>
 
