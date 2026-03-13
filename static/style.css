@@ -1213,8 +1213,38 @@ animation-delay:0.4s;
     border-radius:22px;
     box-shadow:0 15px 45px rgba(0,0,0,0.12);
     margin-bottom:40px;
+    position:relative;
+    overflow:hidden;
+    transition:all 0.3s ease;
 }
 
+/* animated top border */
+.doc-card::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:5px;
+    background:linear-gradient(90deg,#F97316,#FACC15);
+    transform:scaleX(0);
+    transition:transform 0.3s ease;
+}
+
+/* hover effect */
+.doc-card:hover{
+    transform:translateY(-8px);
+    box-shadow:0 20px 55px rgba(0,0,0,0.18);
+}
+
+.doc-card:hover::before{
+    transform:scaleX(1);
+}
+
+/* touch effect for mobile */
+.doc-card:active{
+    transform:scale(0.98);
+}
 .doc-name{
     font-size:20px;
     font-weight:600;
