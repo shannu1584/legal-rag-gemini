@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, render_template, send_file, session
+from flask import Flask, request, render_template, send_file, session,redirect
 import uuid
 from dotenv import load_dotenv
 from google import genai
@@ -169,10 +169,12 @@ def home():
     if "uploaded" not in session:
         session["uploaded"] = False
 
+    filename = current_filename.get(user_id)
+
     if request.method == "POST":
         file = request.files.get("file")
 
-        if file:
+        if file and file.filename != "":
             user_folder = os.path.join("uploads", user_id)
             os.makedirs(user_folder, exist_ok=True)
 
@@ -182,11 +184,21 @@ def home():
             build_retriever(filepath, user_id)
 
             current_filename[user_id] = file.filename
-
-            # ⭐ remember that a document is uploaded
             session["uploaded"] = True
 
-    return render_template("index.html", uploaded=session["uploaded"])
+            return render_template("dashboard.html", filename=file.filename)
+
+    # show dashboard only if file exists
+    if session.get("uploaded") and filename:
+        return render_template("dashboard.html", filename=filename)
+
+    return render_template("index.html")
+@app.route("/home")
+def go_home():
+
+    session["uploaded"] = False
+
+    return redirect("/")
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():

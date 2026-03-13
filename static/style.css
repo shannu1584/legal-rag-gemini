@@ -427,6 +427,27 @@ body {
     flex-wrap: wrap;
     gap: 20px;
 }
+.success-emoji{
+font-size:60px;
+margin-bottom:10px;
+}
+.home-butn{
+display:inline-block;
+margin-top:20px;
+padding:10px 22px;
+border-radius:25px;
+text-decoration:none;
+font-size:14px;
+font-weight:600;
+color:white;
+background:linear-gradient(135deg,#F97316,#FACC15);
+transition:all 0.3s ease;
+}
+
+.home-butn:hover{
+transform:translateY(-2px);
+box-shadow:0 6px 15px rgba(249,115,22,0.4);
+}
 
 .home-btn {
     background: rgba(255, 255, 255, 0.2);
@@ -1067,18 +1088,18 @@ body {
 }
 
 .progress-circle{
-    width:120px;
-    height:120px;
-    border-radius:50%;
-    border:6px solid rgba(255,255,255,0.2);
-    border-top:6px solid #facc15;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    margin:auto;
-    animation:spin 2s linear infinite;
+width:120px;
+height:120px;
+border-radius:50%;
+border:6px solid rgba(255,255,255,0.2);
+border-top:6px solid #facc15;
+display:flex;
+justify-content:center;
+align-items:center;
+margin:auto;
+animation:spin 2s linear infinite;
+box-shadow:0 0 20px rgba(255,215,0,0.6);
 }
-
 .circle{
     font-size:40px;
 }
@@ -1091,6 +1112,7 @@ body {
 #loading-text{
     margin-top:25px;
     font-size:22px;
+    font-weight: bold;
 }
 
 #loading-stage{
@@ -1116,9 +1138,7 @@ body {
 }
 
 
-.progress-circle{
-    box-shadow:0 0 20px rgba(255,215,0,0.6);
-}
+
 .emoji{
     font-size:50px;
     display:inline-block;
@@ -1174,4 +1194,45 @@ animation-delay:0.4s;
 0%{opacity:0.2;}
 50%{opacity:1;}
 100%{opacity:0.2;}
+}
+.dashboard-container{
+    max-width:900px;
+    margin:80px auto;
+    text-align:center;
+    animation:fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(20px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+.doc-card{
+    background:white;
+    padding:45px;
+    border-radius:22px;
+    box-shadow:0 15px 45px rgba(0,0,0,0.12);
+    margin-bottom:40px;
+}
+
+.doc-name{
+    font-size:20px;
+    font-weight:600;
+    color:#334155;
+}
+
+.success-text{
+    color:#22c55e;
+    font-weight:600;
+    margin-top:10px;
+}
+
+.ai-ready{
+    margin-top:15px;
+    display:inline-block;
+    background:linear-gradient(135deg,#10B981,#3B82F6);
+    color:white;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:13px;
 }

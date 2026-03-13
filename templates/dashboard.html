@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Document Ready</title>
+<link rel="stylesheet" href="/static/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="bg-animation">
+<div class="shape shape-1"></div>
+<div class="shape shape-2"></div>
+<div class="shape shape-3"></div>
+</div>
+<div id="loading-screen">
+<div class="loader-container">
+
+<div class="progress-circle">
+<div class="circle">
+<span class="emoji">⚖️</span>
+</div>
+</div>
+
+<h2 id="loading-text">Loading...</h2>
+
+<p id="loading-stage">Preparing AI assistant...</p>
+
+<div class="progress-bar">
+<div id="progress-fill"></div>
+</div>
+
+</div>
+</div>
+<div class="dashboard-container">
+<div class="success-emoji">📜</div>
+<div class="doc-card">
+
+<h2>Document Uploaded Successfully </h2>
+
+<p class="doc-name">{{ filename if filename else "No file selected" }}</p>
+
+<p class="success-text">
+Your document is ready for AI analysis
+</p>
+
+<div class="ai-ready">
+🤖 AI Ready
+</div>
+<a href="/home" class="home-butn">
+Back to Home
+</a>
+</div>
+<div class="action-cards">
+            <a href="/chat"
+            class="action-card card-chat slide-in-left"
+            onclick="event.preventDefault(); showLoading('🤖 Setting up AI Chat...'); setTimeout(()=>{window.location='/chat';},120);">
+
+                <div class="card-icon">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <path d="M50 20C50 15.5817 46.4183 12 42 12H18C13.5817 12 10 15.5817 10 20V35C10 39.4183 13.5817 43 18 43H25L30 48L35 43H42C46.4183 43 50 39.4183 50 35V20Z" fill="url(#chatGradient)"/>
+                        <circle cx="22" cy="27" r="2" fill="white"/>
+                        <circle cx="30" cy="27" r="2" fill="white"/>
+                        <circle cx="38" cy="27" r="2" fill="white"/>
+                        <defs>
+                            <linearGradient id="chatGradient" x1="10" y1="12" x2="50" y2="48">
+                                <stop offset="0%" stop-color="#F97316"/>
+                                <stop offset="100%" stop-color="#FACC15"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h3>Chat with Document</h3>
+                <p>Ask questions and get instant answers using AI-powered RAG</p>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <a href="/summary" 
+            class="action-card card-summary slide-in-right"
+            onclick="event.preventDefault(); showLoading('📑 Generating Legal Summary...'); setTimeout(()=>{window.location='/summary';},120);">
+
+                <div class="card-icon">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <rect x="15" y="10" width="30" height="40" rx="3" fill="url(#summaryGradient)"/>
+                        <line x1="20" y1="20" x2="40" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="26" x2="35" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="32" x2="38" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="20" y1="38" x2="32" y2="38" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="summaryGradient" x1="15" y1="10" x2="45" y2="50">
+                                <stop offset="0%" stop-color="#8B5CF6"/>
+                                <stop offset="100%" stop-color="#EC4899"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h3>Generate Summary</h3>
+                <p>Get detailed analysis with obligations, risks, and confidence score</p>
+                <div class="card-arrow">→</div>
+            </a>
+        </div>
+</div>
+<script>
+
+function showLoading(message){
+
+document.getElementById("loading-text").innerText = message;
+
+document.getElementById("loading-screen").style.visibility = "visible";
+
+startFakeProgress();
+
+}
+function startFakeProgress(){
+
+const fill = document.getElementById("progress-fill");
+const stage = document.getElementById("loading-stage");
+
+let progress = 0;
+
+const stages = [
+"Preparing document...",
+"Understanding legal content...",
+"Analyzing clauses...",
+"Generating response..."
+];
+
+let stageIndex = 0;
+
+const interval = setInterval(()=>{
+
+progress += Math.random()*20;
+
+if(progress >= 100){
+progress = 100;
+clearInterval(interval);
+}
+
+fill.style.width = progress + "%";
+
+if(progress > (stageIndex+1)*25 && stageIndex < stages.length-1){
+stageIndex++;
+stage.innerText = stages[stageIndex];
+}
+
+},400);
+
+}
+
+</script>
+</body>
+</html>
