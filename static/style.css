@@ -1236,3 +1236,33 @@ animation-delay:0.4s;
     border-radius:20px;
     font-size:13px;
 }
+/* Dashboard Mobile Fix */
+@media (max-width:768px){
+
+.dashboard-container{
+    margin:40px 15px;
+}
+
+.doc-card{
+    padding:25px 18px;
+}
+
+.doc-name{
+    font-size:16px;
+    word-break: break-word;
+}
+
+.success-emoji{
+    font-size:45px;
+}
+
+.action-cards{
+    grid-template-columns:1fr;
+    gap:20px;
+}
+
+.action-card{
+    padding:25px 20px;
+}
+
+}
