@@ -82,23 +82,40 @@ def rag_answer(question):
     if index is None:
         return "Please upload a PDF first."
 
+    # 🔥 Increase retrieval
     question_embedding = get_embedding(question)
-    D, I = index.search(np.array([question_embedding]), k=5)
+    D, I = index.search(np.array([question_embedding]), k=15)
 
     retrieved_chunks = [chunks[i] for i in I[0]]
+
+    # 🔥 Always include first chunk (VERY IMPORTANT)
+    if len(chunks) > 0:
+        retrieved_chunks.insert(0, chunks[0])
+
     context = "\n".join(retrieved_chunks)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=f"""
-Answer briefly in 1-2 sentences.
+    # 🔥 Strong prompt
+    prompt = f"""
+Answer in ONE SHORT LINE (max 20 words).
+
+Rules:
+- Answer ONLY from context.
+- For comparison questions, combine related information.
+- Do NOT say "not mentioned" if inference is possible.
+- If truly absent, say: "Not mentioned in document".
 
 Context:
 {context}
 
 Question:
 {question}
+
+Answer:
 """
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
     )
 
     return response.text.strip()
