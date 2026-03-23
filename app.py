@@ -160,17 +160,42 @@ Text:
 # ===============================
 # CONFIDENCE CALCULATION
 # ===============================
-def calculate_confidence():
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(text1, text2):
+    emb1 = get_embedding(text1)
+    emb2 = get_embedding(text2)
+
+    score = cosine_similarity([emb1], [emb2])[0][0]
+    return score * 100
+def calculate_confidence(summary_output):
     user_id = session.get("user_id")
     chunks = user_chunks.get(user_id)
 
     if not chunks:
         return "0%"
 
-    # Basic logic based on document depth
-    score = min(70 + len(chunks) // 2, 95)
+    total_chunks = len(chunks)
+    used_chunks = min(12, total_chunks)
 
-    return f"{score}%"
+    # 🔹 1. Depth
+    depth = (used_chunks / total_chunks) * 100
+
+    # 🔹 2. Same text used for summary
+    combined_text = "\n".join(
+        chunks[:used_chunks]
+    )
+
+    # 🔹 3. Similarity
+    similarity = calculate_similarity(summary_output, combined_text)
+
+    # 🔹 4. Hybrid
+    hybrid = (0.6 * depth) + (0.4 * similarity)
+
+    # 🔹 5. Map to 70–95
+    confidence = min(95, 70 + (hybrid * 0.25))
+
+    return f"{round(confidence, 2)}%"
 # =====================================
 # ROUTES
 # =====================================
@@ -250,14 +275,14 @@ def summary():
         obligations_part = sub[0].strip()
         if len(sub) > 1:
             risks_part = sub[1].strip()
-
+    confidence_value = calculate_confidence(output)
     return render_template(
         "summary.html",
         summary=summary_part,
         obligations=obligations_part,
         risks=risks_part,
         filename=current_filename.get(session.get("user_id")),
-        confidence = calculate_confidence()
+        confidence=confidence_value
     )
 
 
