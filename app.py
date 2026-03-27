@@ -190,7 +190,7 @@ def calculate_confidence(summary_output):
     similarity = calculate_similarity(summary_output, combined_text)
 
     # 🔹 4. Hybrid
-    hybrid = (0.6 * depth) + (0.4 * similarity)
+    hybrid = (0.3 * depth) + (0.7 * similarity)
 
     # 🔹 5. Map to 70–95
     confidence = min(95, 70 + (hybrid * 0.25))
