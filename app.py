@@ -1,9 +1,9 @@
 import os
+from urllib import response
 from flask import Flask, request, render_template, send_file, session, redirect
 import uuid
 from dotenv import load_dotenv
 from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
 from google import genai
 import faiss
 import numpy as np
@@ -52,12 +52,14 @@ def allowed_file(filename):
 # =====================================
 def mistral_generate(prompt):
     response = mistral_client.chat(
-        model="mistral-large-latest",
+        model="mistral-small",
         messages=[
-            ChatMessage(role="user", content=prompt)
+            {"role": "user", "content": prompt}
         ]
     )
-    return response.choices[0].message.content
+
+    return response.choices[0].message.content   
+    
 # =====================================
 # EMBEDDING
 # =====================================
