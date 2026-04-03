@@ -1,31 +1,37 @@
 import os
-from flask import Flask, request, render_template, send_file, session,redirect
+from flask import Flask, request, render_template, send_file, session, redirect
 import uuid
 from dotenv import load_dotenv
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
 from google import genai
 import faiss
-from langchain_community import embeddings
 import numpy as np
 from langchain_community.document_loaders import PyPDFLoader
+from docx import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib import colors
-from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from datetime import datetime
 from sentence_transformers import SentenceTransformer
+
 
 # =====================================
 # LOAD ENV
 # =====================================
 load_dotenv()
 
-client = genai.Client(
+
+mistral_client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
+gen_client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY"),
     http_options={"api_version": "v1"}  # VERY IMPORTANT
 )
+
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
 app = Flask(__name__)
 app.secret_key = "legal-rag-secret"
 
@@ -36,18 +42,32 @@ user_indexes = {}
 user_chunks = {}
 user_history = {}
 current_filename = {}
+ALLOWED_EXTENSIONS = {"pdf", "docx", "doc"}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # =====================================
-# EMBEDDING FUNCTION
+# GROQ FUNCTION
+# =====================================
+def mistral_generate(prompt):
+    response = mistral_client.chat(
+        model="mistral-large-latest",
+        messages=[
+            ChatMessage(role="user", content=prompt)
+        ]
+    )
+    return response.choices[0].message.content
+# =====================================
+# EMBEDDING
 # =====================================
 def get_embedding(text):
     return embedding_model.encode(text, convert_to_numpy=True).astype("float32")
 
 # =====================================
-# BUILD FAISS INDEX
+# BUILD RETRIEVER
 # =====================================
 def build_retriever(pdf_path, user_id):
-    global index, chunks
 
     loader = PyPDFLoader(pdf_path)
     documents = loader.load()
@@ -68,11 +88,35 @@ def build_retriever(pdf_path, user_id):
 
     user_indexes[user_id] = index
     user_chunks[user_id] = chunks
-    print("✅ Document indexed with local embeddings (MiniLM)")
 
+    print("✅ Document indexed")
+def process_word_file(filepath, user_id):
+    doc = Document(filepath)
+
+    text = ""
+    for para in doc.paragraphs:
+        text += para.text + "\n"
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+
+    chunks = splitter.split_text(text)
+
+    embeddings = [get_embedding(chunk) for chunk in chunks]
+
+    dimension = len(embeddings[0])
+    index = faiss.IndexFlatL2(dimension)
+    index.add(np.array(embeddings))
+
+    user_indexes[user_id] = index
+    user_chunks[user_id] = chunks
+
+    print("✅ Word document indexed")
 
 # =====================================
-# RAG ANSWER
+# RAG CHAT
 # =====================================
 def rag_answer(question):
     user_id = session.get("user_id")
@@ -96,9 +140,12 @@ def rag_answer(question):
 
     # 🔥 Strong prompt
     prompt = f"""
-Answer in ONE SHORT LINE (max 20 words).
+Answer clearly and concisely in 2-3 sentences.
+Use simple English.
 
 Rules:
+- Do NOT use markdown symbols like ** or *
+- Use plain text only
 - Answer ONLY from context.
 - For comparison questions, combine related information.
 - Do NOT say "not mentioned" if inference is possible.
@@ -113,14 +160,11 @@ Question:
 Answer:
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-
-    return response.text.strip()
+    return mistral_generate(prompt)
 
 
+# =====================================
+# SUMMARY (FULL DOCUMENT COVERAGE)
 def generate_summary():
     user_id = session.get("user_id")
     chunks = user_chunks.get(user_id)
@@ -151,22 +195,20 @@ Text:
 {combined_text}
 """
 
-    response = client.models.generate_content(
+    response = gen_client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt
     )
 
     return response.text.strip()
-# ===============================
-# CONFIDENCE CALCULATION
-# ===============================
 
+# =====================================
+# CONFIDENCE
+# =====================================
 def calculate_confidence():
     return "100%"
-# =====================================
 # ROUTES
 # =====================================
-
 @app.route("/", methods=["GET", "POST"])
 def home():
 
@@ -180,24 +222,32 @@ def home():
 
     filename = current_filename.get(user_id)
 
+    # ✅ ONLY inside POST
     if request.method == "POST":
+
         file = request.files.get("file")
 
-        if file and file.filename != "":
+        if file and allowed_file(file.filename):
+
             user_folder = os.path.join("uploads", user_id)
             os.makedirs(user_folder, exist_ok=True)
 
             filepath = os.path.join(user_folder, file.filename)
             file.save(filepath)
 
-            build_retriever(filepath, user_id)
+            # 🔥 FILE TYPE CHECK
+            if file.filename.endswith(".pdf"):
+                build_retriever(filepath, user_id)
+
+            elif file.filename.endswith((".docx", ".doc")):
+                process_word_file(filepath, user_id)
 
             current_filename[user_id] = file.filename
             session["uploaded"] = True
 
             return render_template("dashboard.html", filename=file.filename)
 
-    # show dashboard only if file exists
+    # ✅ SAFE GET (no file used here)
     if session.get("uploaded") and filename:
         return render_template("dashboard.html", filename=filename)
 
@@ -226,6 +276,7 @@ def chat():
         history.append((q, a))
 
     return render_template("chat.html", history=history)
+
 
 @app.route("/summary")
 def summary():
