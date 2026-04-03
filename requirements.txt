@@ -1,5 +1,6 @@
 Flask
 python-dotenv
+mistralai
 google-genai
 faiss-cpu
 numpy
@@ -9,3 +10,4 @@ reportlab
 sentence-transformers
 pypdf
 gunicorn
+python-docx
