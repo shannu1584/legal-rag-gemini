@@ -144,7 +144,6 @@ def rag_answer(question):
     prompt = f"""
 Answer clearly and concisely in 2-3 sentences.
 Use simple English.
-
 Rules:
 - Do NOT use markdown symbols like ** or *
 - Use plain text only
@@ -152,13 +151,10 @@ Rules:
 - For comparison questions, combine related information.
 - Do NOT say "not mentioned" if inference is possible.
 - If truly absent, say: "Not mentioned in document".
-
 Context:
 {context}
-
 Question:
 {question}
-
 Answer:
 """
 
@@ -181,18 +177,13 @@ Return ONLY in the exact format below.
 Do NOT write any introduction.
 Do NOT add extra explanation.
 Start directly with SUMMARY:
-
 SUMMARY:
 • 8 bullet points
-
 OBLIGATIONS:
 • 8 bullet points
-
 RISKS:
 • 5 bullet points
-
 Use simple English.
-
 Text:
 {combined_text}
 """
@@ -283,6 +274,7 @@ def chat():
 @app.route("/summary")
 def summary():
     output = generate_summary()
+    session["summary_output"] = output
 
     parts = output.split("OBLIGATIONS:")
     summary_part = parts[0].replace("SUMMARY:", "").strip()
@@ -308,7 +300,11 @@ def summary():
 
 @app.route("/export_pdf")
 def export_pdf():
-    text = generate_summary()
+    text = session.get("summary_output")
+
+    # fallback if user directly opens PDF
+    if not text:
+        text = generate_summary()
 
     filename = "Legal_Report.pdf"
     doc = SimpleDocTemplate(filename, pagesize=A4)
