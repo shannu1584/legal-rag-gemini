@@ -1,0 +1,420 @@
+total_chunks = len(docs) if docs else 1
+    confidence = min(95, 60 + total_chunks)
+    confidence_text = f"{confidence}%"
+
+
+%%writefile app.py
+# ==================================================
+# IMPORTS
+# ==================================================
+
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+import logging
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
+from flask import Flask, request, render_template, send_file,redirect,session
+import torch
+
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.llms import HuggingFacePipeline
+from langchain_community.vectorstores import FAISS
+
+# PDF
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from datetime import datetime
+
+# ==================================================
+# FLASK SETUP
+# ==================================================
+
+app = Flask(__name__)
+app.secret_key = "supersecretkey"
+
+retriever = None
+docs = None
+history = []
+uploaded_flag = False
+current_filename = "Uploaded Document"
+
+
+# ==================================================
+# LOAD MODEL (UNCHANGED)
+# ==================================================
+
+print("⏳ Loading model...")
+
+model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+os.makedirs("offload", exist_ok=True)
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype=torch.float16,
+    bnb_4bit_use_double_quant=True
+)
+
+if torch.cuda.is_available():
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map="balanced",
+        max_memory={0: "8GiB", "cpu": "40GiB"},
+        offload_folder="offload",
+        offload_state_dict=True,
+        low_cpu_mem_usage=True
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(model_id, device_map="cpu")
+
+model.eval()
+
+
+pipe = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    max_new_tokens=650,
+    temperature=0,
+    do_sample=False,
+    return_full_text=False,
+    pad_token_id=tokenizer.eos_token_id
+)
+
+llm = HuggingFacePipeline(pipeline=pipe)
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+
+print("✅ LLM READY")
+
+
+# ==================================================
+# RETRIEVER (UNCHANGED)
+# ==================================================
+
+def build_retriever(pdf_path):
+    global retriever, docs
+
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2000,
+        chunk_overlap=300
+    )
+
+    docs = splitter.split_documents(documents)
+
+    vectorstore = FAISS.from_documents(docs, embeddings)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 12})
+
+    print("✅ Document indexed")
+
+
+# ==================================================
+# RAG CHAT (UNCHANGED)
+# ==================================================
+
+def rag_answer(question):
+
+    if retriever is None:
+        return "Upload PDF first."
+
+    results = retriever.invoke(question)
+    context = " ".join(d.page_content for d in results)
+
+    prompt = f"""
+must Answer in ONE SHORT LINE only (max 15 words).
+No explanation.
+
+Context:
+{context}
+
+Question: {question}
+Answer:
+"""
+
+    return llm.invoke(prompt).strip()
+
+
+# ==================================================
+# SUMMARY (UNCHANGED – your fast version)
+# ==================================================
+
+def generate_summary():
+
+    chunk_summaries = []
+
+    print("Summarizing chunks safely...")
+
+    # STEP 1 — summarize each chunk (very small)
+    for d in docs[:12]:   # 🔥 LIMIT chunks (important)
+        prompt = f"""
+Summarize in ONLY 2 short bullets.
+
+Text:
+{d.page_content[:1200]}
+
+Bullets:
+"""
+        out = llm.invoke(prompt)
+        chunk_summaries.append(out)
+
+
+    # STEP 2 — keep combined text small
+    combined = "\n".join(chunk_summaries[:20])
+
+
+    # STEP 3 — final structured output
+    final_prompt = f"""
+Using ONLY these points, generate:
+
+SUMMARY:
+• 8 bullets
+
+OBLIGATIONS:
+• 8 bullets
+
+RISKS:
+• 5 bullets
+
+Rules:
+- simple English
+- full sentences
+- MUST include all 3 sections
+- do NOT skip any section
+
+Points:
+{combined}
+
+Output:
+"""
+
+    return llm.invoke(final_prompt)
+
+
+# ==================================================
+# ROUTES
+# ==================================================
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(text1, text2):
+    emb1 = embeddings.embed_query(text1)
+    emb2 = embeddings.embed_query(text2)
+
+    score = cosine_similarity([emb1], [emb2])[0][0]
+    return score * 100
+@app.route("/", methods=["GET","POST"])
+def home():
+    global uploaded_flag, current_filename
+
+    if request.method == "POST":
+        file = request.files.get("file")
+
+        if file:
+            file.save(file.filename)
+            build_retriever(file.filename)
+
+            session["uploaded"] = True
+            current_filename = file.filename
+
+            return render_template("dashboard.html", filename=current_filename)
+
+    if session.get("uploaded") and current_filename:
+        return render_template("dashboard.html", filename=current_filename)
+
+    return render_template("index.html")
+
+@app.route("/home")
+def go_home():
+
+    session["uploaded"] = False
+
+    return redirect("/")
+
+@app.route("/chat", methods=["GET","POST"])
+def chat():
+    global history
+
+    if request.method == "POST":
+        q = request.form["question"]
+        a = rag_answer(q)
+        history.append((q, a))
+
+    return render_template("chat.html", history=history)
+
+
+@app.route("/summary")
+def summary():
+
+    out = generate_summary()
+
+    parts = out.split("OBLIGATIONS:")
+    summary_part = parts[0].replace("SUMMARY:", "").strip()
+
+    obligations_part = ""
+    risks_part = ""
+
+    if len(parts) > 1:
+        sub = parts[1].split("RISKS:")
+        obligations_part = sub[0].strip()
+        if len(sub) > 1:
+            risks_part = sub[1].strip()
+
+ 
+    # FINAL HYBRID CONFIDENCE
+    # =========================================
+
+    total_chunks = len(docs) if docs else 1
+    used_chunks = min(12, total_chunks)
+
+    # 1. Depth
+    depth = (used_chunks / total_chunks) * 100
+
+    # 2. Same text used for summary
+    combined_text = "\n".join(d.page_content[:1000] for d in docs[:used_chunks])
+
+    # 3. Similarity
+    similarity = calculate_similarity(out, combined_text)
+
+    # 4. Hybrid
+    hybrid = (0.6 * depth) + (0.4 * similarity)
+
+    # 5. Map to 70–95
+    confidence =min(95, 70 + (hybrid * 0.25))
+
+    confidence_text = f"{round(confidence, 2)}%"
+
+    
+    return render_template(
+        "summary.html",
+        summary=summary_part,
+        obligations=obligations_part,
+        risks=risks_part,
+        filename=current_filename,
+        confidence=confidence_text
+    )
+@app.route("/export_pdf")
+def export_pdf():
+    text = generate_summary()
+
+    filename = "Legal_Report.pdf"
+    doc = SimpleDocTemplate(filename, pagesize=A4)
+    styles = getSampleStyleSheet()
+
+    # Custom Styles
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=22,
+        textColor=colors.darkblue,
+        spaceAfter=20
+    )
+
+    heading_style = ParagraphStyle(
+        'HeadingStyle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.red,
+        spaceBefore=15,
+        spaceAfter=10
+    )
+
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['BodyText'],
+        fontSize=12,
+        leading=16
+    )
+
+    elements = []
+
+    # Title
+    elements.append(Paragraph("Legal Document Analysis Report", title_style))
+    elements.append(Spacer(1, 12))
+
+    # Document Name
+    elements.append(Paragraph(f"<b>Document:</b> {current_filename}", normal_style))
+    elements.append(Spacer(1, 6))
+
+    # Generated Date
+    today = datetime.now().strftime("%d %B %Y")
+    elements.append(Paragraph(f"<b>Generated On:</b> {today}", normal_style))
+    elements.append(Spacer(1, 20))
+
+    # Split sections
+    sections = text.split("OBLIGATIONS:")
+    summary_part = sections[0].replace("SUMMARY:", "").strip()
+
+    obligations_part = ""
+    risks_part = ""
+
+    if len(sections) > 1:
+        sub = sections[1].split("RISKS:")
+        obligations_part = sub[0].strip()
+        if len(sub) > 1:
+            risks_part = sub[1].strip()
+
+    # SUMMARY
+    elements.append(Paragraph("SUMMARY", heading_style))
+    elements.append(Spacer(1, 10))
+
+    for line in summary_part.split("\n"):
+        if line.strip():
+            elements.append(Paragraph(f"• {line.strip()}", normal_style))
+            elements.append(Spacer(1, 5))
+
+    # OBLIGATIONS
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("OBLIGATIONS", heading_style))
+    elements.append(Spacer(1, 10))
+
+    for line in obligations_part.split("\n"):
+        if line.strip():
+            elements.append(Paragraph(f"• {line.strip()}", normal_style))
+            elements.append(Spacer(1, 5))
+
+    # RISKS
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("RISKS", heading_style))
+    elements.append(Spacer(1, 10))
+
+    for line in risks_part.split("\n"):
+        if line.strip():
+            elements.append(Paragraph(f"• {line.strip()}", normal_style))
+            elements.append(Spacer(1, 5))
+
+    doc.build(elements)
+
+    return send_file(filename, as_attachment=True)
+
+
+
+
+# ==================================================
+
+if __name__ == "__main__":
+    app.run(port=8000, debug=False)
+
+
+def calculate_confidence():
+    user_id = session.get("user_id")
+    chunks = user_chunks.get(user_id)
+
+    if not chunks:
+        return "0%"
+
+    # Basic logic based on document depth
+    score = min(70 + len(chunks) // 2, 90)
+
+    return f"{score}%"  can u give correct confidence logic which is above

@@ -44,7 +44,7 @@ user_indexes = {}
 user_chunks = {}
 user_history = {}
 current_filename = {}
-ALLOWED_EXTENSIONS = {"pdf", "docx", "doc"}
+ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "txt"}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -118,6 +118,27 @@ def process_word_file(filepath, user_id):
     user_chunks[user_id] = chunks
 
     print("✅ Word document indexed")
+def process_txt_file(filepath, user_id):
+    with open(filepath, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+
+    chunks = splitter.split_text(text)
+
+    embeddings = [get_embedding(chunk) for chunk in chunks]
+
+    dimension = len(embeddings[0])
+    index = faiss.IndexFlatL2(dimension)
+    index.add(np.array(embeddings))
+
+    user_indexes[user_id] = index
+    user_chunks[user_id] = chunks
+
+    print("✅ TXT document indexed")
 
 # =====================================
 # RAG CHAT
@@ -236,6 +257,9 @@ def home():
 
             elif file.filename.endswith((".docx", ".doc")):
                 process_word_file(filepath, user_id)
+
+            elif file.filename.endswith(".txt"):
+                process_txt_file(filepath, user_id)
 
             current_filename[user_id] = file.filename
             session["uploaded"] = True
