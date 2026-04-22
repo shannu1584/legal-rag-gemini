@@ -5,8 +5,6 @@ import uuid
 from dotenv import load_dotenv
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
-
-from google import genai
 import faiss
 import numpy as np
 from langchain_community.document_loaders import PyPDFLoader
@@ -27,10 +25,7 @@ load_dotenv()
 
 
 mistral_client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
-gen_client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY"),
-    http_options={"api_version": "v1"}  # VERY IMPORTANT
-)
+
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -199,6 +194,8 @@ def generate_summary():
 Return ONLY in the exact format below.
 Do NOT write any introduction.
 Do NOT add extra explanation.
+Do NOT use markdown symbols like ** or *
+Use plain text only
 Start directly with SUMMARY:
 SUMMARY:
 • 8 bullet points
@@ -211,13 +208,7 @@ Text:
 {combined_text}
 """
 
-    response = gen_client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-
-    return response.text.strip()
-
+    return mistral_generate(prompt)
 # =====================================
 # CONFIDENCE
 # =====================================
