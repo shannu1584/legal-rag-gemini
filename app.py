@@ -182,33 +182,65 @@ Answer:
 # =====================================
 # SUMMARY (FULL DOCUMENT COVERAGE)
 def generate_summary():
+
     user_id = session.get("user_id")
     chunks = user_chunks.get(user_id)
 
     if not chunks:
         return "Upload PDF first."
 
-    combined_text = "\n".join(chunks[:12])
+    # 🔥 GROUP CHUNKS
+    grouped_chunks = [
+        "\n".join(chunks[i:i+10])
+        for i in range(0, len(chunks), 10)
+    ]
 
-    prompt = f"""
+    group_summaries = []
+
+    # 🔥 FULL COVERAGE (NO LIMIT)
+    for group in grouped_chunks:
+        prompt = f"""
+Extract ALL important legal points.
+
+STRICT RULES:
+- Only extract from text
+- Do NOT assume
+- Include all clauses
+
+Text:
+{group[:4000]}
+"""
+        out = mistral_generate(prompt)
+        group_summaries.append(out)
+
+    # 🔥 COMBINE
+    combined = "\n".join(group_summaries)
+
+    final_prompt = f"""
 Return ONLY in the exact format below.
 Do NOT write any introduction.
 Do NOT add extra explanation.
 Do NOT use markdown symbols like ** or *
 Use plain text only
 Start directly with SUMMARY:
+
 SUMMARY:
 • 8 bullet points
+
 OBLIGATIONS:
 • 8 bullet points
+
 RISKS:
 • 5 bullet points
+
 Use simple English.
-Text:
-{combined_text}
+
+Content:
+{combined[:6000]}
 """
 
-    return mistral_generate(prompt)
+    return mistral_generate(final_prompt)
+
 # =====================================
 # CONFIDENCE
 # =====================================
